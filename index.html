@@ -1,0 +1,178 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="css/main.css">
+<link href="css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/bootstrap-responsive.min.css">
+<title>云同步</title>
+</head>
+<body>
+	<!-- header -->
+	<div id="header"></div>
+
+	<!-- body -->
+	<div id="body">
+		<div id="body-top">
+			<div></div>
+			<div id="selection" >
+			    <div  class="btn-group" data-toggle="buttons-radio">
+			        <button type="button" class="btn btn-primary active"  id="btn-unsynced">未同步</button>
+			        <button type="button" class="btn btn-primary"  id="btn-synced">已同步</button>
+			    </div>
+        		<div  class="btn-group" data-toggle="buttons-radio">
+                    <button type="button" class="btn btn-primary active"  id="btn-sort-asc">升序</button>
+			        <button type="button" class="btn btn-primary"  id="btn-sort-dec">降序</button>
+        		</div>
+			</div>
+			<div id="search">
+				<input type="search" placeholder="搜索">
+			</div>
+		</div>
+		<div id="body-center">
+			<div class="tabbable tabs-left" id="">
+				<ul class="nav nav-tabs">
+					<!-- <li><span >软件分类</span></li> -->
+					<li id="nav-all" class="active"><a href="#tab1" data-toggle="tab">所有软件</a></li>
+					<li id="nav-int"><a href="#tab2" data-toggle="tab">Internet</a></li>
+					<li id="nav-mul"><a href="#tab3" data-toggle="tab">多&nbsp;媒&nbsp;体</a></li>
+					<li id="nav-off"><a href="#tab4" data-toggle="tab">办公软件</a></li>
+					<li id="nav-gam"><a href="#tab5" data-toggle="tab">游&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;戏</a></li>
+					<li id="nav-pic"><a href="#tab6" data-toggle="tab">图形图像</a></li>
+					<li id="nav-dev"><a href="#tab7" data-toggle="tab">编程开发</a></li>
+					<li id="nav-sys"><a href="#tab8" data-toggle="tab">系统工具</a></li>
+					<li id="nav-acc"><a href="#tab9" data-toggle="tab">附&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;件</a></li>
+					<li id="nav-oth"><a href="#tab0" data-toggle="tab">其&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;他</a></li>
+				</ul>
+					<!-- <div class="tab-content"><div class="tab-pane active" id="tab1"></div></div> -->
+					<div id="apps">
+						<div class="app   unsync internet"> 
+							<img src="img/apps/media-player-banshee.png" alt="Banshee Multimedia" />
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync  multimedia">
+							<img src="img/apps/audacity.png" alt="audacity" />
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync office">
+							<img src="img/apps/bluefish.png" alt="bluefish">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync game">
+							<img src="img/apps/brasero.png" alt="brasero">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync picture">
+							<img src="img/apps/ccc_large.png" alt="CCC">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync development">
+							<img src="img/apps/checkbox.png" alt="checkbox">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app    unsync accessory">
+							<img src="img/apps/checkbox.png" alt="checkbox">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync other">
+							<img src="img/apps/default.png" alt="default">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync multimedia">
+							<img src="img/apps/media-player-banshee.png" alt="Banshee Multimedia">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync development">
+							<img src="img/apps/audacity.png" alt="audacity">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync internet">
+							<img src="img/apps/bluefish.png" alt="bluefish">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync game">
+							<img src="img/apps/brasero.png" alt="brasero">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync office">
+							<img src="img/apps/ccc_large.png" alt="CCC">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app   unsync pircture">
+							<img src="img/apps/checkbox.png" alt="checkbox">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app  unsync system">
+							<img src="img/apps/checkbox.png" alt="checkbox">
+							<h6>Banshee</h6>
+						</div>
+						<div class="app  unsync other">
+							<img src="img/apps/default.png" alt="default">
+							<h6>Banshee</h6>
+						</div>
+					</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- footer -->
+	<div id="footer">
+		<p id="copyright">
+			<span>&copy;Red flag 研发小组 2012-2012</span>
+		</p>
+	</div>
+	<script type="text/javascript"  src="js/jquery-1.8.3.min.js"></script>
+	<script type="text/javascript"  src="js/bootstrap.min.js"></script>
+	<script type="text/javascript"  src="js/jquery.isotope.min.js"></script>
+	<script type="text/javascript" >
+    /*init*/
+    $("#apps"). isotope({filter:'.app'});
+    $nav = ".app";
+    $sync = ".unsync";
+	/* disable right menu */
+    $("img").bind("contextmenu", function(event){ return false; });
+    $("#apps").isotope({itemSelector: '.app', layoutMode: 'masonry', });	
+    /* double left click*/
+    $("img").dblclick(function(){
+        if($(this).parent().hasClass('unsync')) {
+            $(this).parent().removeClass("unsync").addClass("sync");
+            $("#apps"). isotope({filter:$nav, filter:'.unsync'});
+             $sync = ".unsync";
+        }
+        else if($(this).parent().hasClass('sync')) {
+            $(this).parent().removeClass("sync").addClass("unsync");
+            $("#apps"). isotope({filter:$nav, filter:'.sync'});
+            $sync = ".sync";
+        }
+        return false;
+    }).mousedown(function(event) {
+        if(event.which == 3){
+            alert("Right clicked");             
+        }
+        return false;
+    });
+
+    /*sort */
+   
+    
+    /*synce */
+    $("#btn-unsynced").click(function(){
+        $("#apps"). isotope({filter:'.unsync ' }).istope({filter:$nav});
+    });
+    $("#btn-synced").click(function(){
+        $("#apps").isotope({filter: '.sync '}).istope({filter:$nav});
+    });
+    /* navigate */
+    $("#nav-all").click(function(){ $("#apps").isotope({filter: $sync, filter: '.app'}); $nav = ".app";  });
+    $("#nav-int").click(function(){ $("#apps").isotope({filter: $sync, filter: '.internet'}); $nav = ".internet"; });
+    $("#nav-mul").click(function(){ $("#apps").isotope({filter: $sync, filter: ".multimedia"}); $nav = ".multimedia"; });
+    $("#nav-off").click(function(){ $("#apps").isotope({filter: $sync, filter: ".office"}); $nav = ".office"; });
+    $("#nav-gam").click(function(){ $("#apps").isotope({filter: $sync, filter: ".game"}); $nav = ".game"; });
+    $("#nav-pic").click(function(){ $("#apps").isotope({filter: $sync, filter: ".picture"}); $nav = ".picture"; });
+    $("#nav-dev").click(function(){ $("#apps").isotope({filter: $sync, filter: ".development"}); $nav = ".development"; });
+    $("#nav-sys").click(function(){ $("#apps").isotope({filter: $sync, filter: ".system"}); $nav = ".system" ; });
+    $("#nav-acc").click(function(){ $("#apps").isotope({filter: $sync, filter: ".accessory"}); $nav = ".accessory"; });
+    $("#nav-oth").click(function(){ $("#apps").isotope({filter: $sync, filter: ".other"}); $nav = ".other"; });
+	</script>
+</body>
+</html>
