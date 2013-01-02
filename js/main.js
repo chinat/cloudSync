@@ -1,3 +1,8 @@
+function updateSync(sync, unsync) {
+    $("#btn-synced").text("已同步("+sync + ")");
+    $("#btn-unsynced").text("未同步("+unsync + ")");
+}
+
 $(function(){
     $container = $("#apps");
     var selector = '.app';
@@ -19,6 +24,8 @@ $(function(){
         if($(this).parent().hasClass('unsync')) {
             $(this).parent().removeClass("unsync").addClass("sync");
             $container. isotope({filter:'.unsync'});
+            btnSynced ++;
+            updateSync(btnSynced, count - btnSynced);
         }
         else if($(this).parent().hasClass('sync')) {
             $(this).parent().removeClass("sync").addClass("unsync");
