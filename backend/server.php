@@ -20,8 +20,8 @@ $handle = NULL;
 echo '<?xml version="1.0" encoding="UTF-8"?>';
 echo '<apps>';
 if (is_dir ( $path )) {
-	$count = sizeof(scandir($path));
-	echo ($count > 2) ? $count - 2:0;
+	$count = sizeof(scandir($path)) - 2;
+	//echo ($count > 2) ? $count - 2:0;
 	echo '<count>'.$count.'</count>';
 	$count = 0;
 	$handle = opendir ( $path );
