@@ -11,8 +11,11 @@ var fs = require("fs"),
 var app = express();
 var userName = process.argv[2],
     passwd = process.argv[3],
-    cloud = "~/.qomoCloud",
-    gitdir = cloud + "/.git";
+    repo = "qomoCloud",
+    cloud = "~/." + repo,
+    gitdir = cloud + "/.git",
+    appsfile = "apps.list",
+    apps = [];
 var git = new Git({'git-dir': gitdir});
     github = new GitHub({
             version: "3.0.0"
@@ -23,7 +26,7 @@ function init(callback){
 
     async.waterfall([
             function (callback) {
-                async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud, "cp -f ./cloudSync/file.list " + cloud], exec, function (err, results){
+                async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud], exec, function (err, results){
                     if (err) console.log(err.message);
                     console.log("exec: " + results);
                     callback(null) 
@@ -45,6 +48,16 @@ function init(callback){
                     console.log("data: " + data);
                     callback(null, data.trim().split('\n'));
                 });
+                var files = [];
+                var count = apps.length;
+
+                if (count === 0) {
+                } else {
+                    apps.forEach(function (element, index, array){
+                        fs.readFile("apps/" + element, "utf8", function (err, data){
+                        });
+                    });
+                }
             },
             function (files, callback) {
                 files.forEach(function (element, index, array){
@@ -92,7 +105,7 @@ function init(callback){
                 });
                 github.repos.create(
                     {
-                      "name": "qomoCloud",
+                      "name": repo,
                       "description": "This is qomoCloud repo",
                       "homepage": "https://github.com",
                       "private": false,
@@ -106,7 +119,7 @@ function init(callback){
                     });
             },
             function (callback) {
-                git.exec("remote", ["add origin git@github.com:" + userName + "/qomoCloud.git"], function (err, msg) {
+                git.exec("remote", ["add origin git@github.com:" + userName + "/" + repo + ".git"], function (err, msg) {
                     if (err) console.log(err.message);
                     console.log("remote: " + msg);
                     callback(null);
@@ -119,7 +132,9 @@ function init(callback){
                     callback(null);
                 });
             },
-            ]);
+            ], function (err, result) {
+                callback(err);
+            });
 }
 
 function watch(callback){
@@ -141,18 +156,80 @@ function watch(callback){
     });
 }
 
-init(function (file) {
-    if (file) 
-        console.log(file + " is change!");
-});
-
 app.engine('haml', engines.haml);
 app.engine('html', engines.hogan);
 
 app.use(express.static(__dirname + '/'));
+app.use(express.bodyParser());
 
 app.get('/', function(req, res){
-        res.render('index.html');
+    github.repos.watch({"user": userName, "repo": repo}, function (err, res){
+        if (err) {
+            if (err.code === 404) {
+                init(function (err) {
+                    if (err) console.log(err.message);
+                    res.render('index.html');
+                });
+            } else {
+                console.log(err.message);
+                res.render('index.html');
+            }
+        } else {
+            fs.exists(cloud, function (exists) {
+                if (exists) {
+                    async.series([
+                        function (callback) {
+                            git.exec("reset", ["--hard"], function (err, msg) {
+                                if (err) console.log(err.message);
+                                console.log("reset: " + msg);
+                                callback(null);
+                            });
+                        },
+                        function (callback) {
+                            git.exec("checkout", ["master"], function (err, msg) {
+                                if (err) console.log(err.message);
+                                console.log("checkout: " + msg);
+                                callback(null);
+                            });
+                        },
+                        function (callback) {
+                            git.exec("reset", ["--hard"], function (err, msg) {
+                                if (err) console.log(err.message);
+                                console.log("reset: " + msg);
+                                callback(null);
+                            });
+                        },
+                        function (callback) {
+                            git.exec("pull", ["origin"], function (err, msg) {
+                                if (err) console.log(err.message);
+                                console.log("pull: " + msg);
+                                callback(null);
+                            });
+                        },
+                        ])
+                } else {
+                    github.authenticate({
+                        type: "basic",
+                        username: userName,
+                        password: passwd
+                    });
+                    git.exec("clone", ["git@github.com:" + userName + "/" + repo + ".git"], function (err, msg) {
+                        if (err) console.log(err.message);
+                        console.log("clone: " + msg);
+                    });
+               }
+            });
+        }
+    });
+    res.render('index.html');
 });
 
-app.listen(8080);
+app.post('/', function(req, res){
+    apps = req.body.apps;
+    fs.writeFile(appsfile, apps.join("\n"), function (err) {
+        if (err) console.log(err.message);
+        res.render('index.html');
+    });
+});
+
+app.listen(8000);
