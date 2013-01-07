@@ -15,7 +15,7 @@ var userName = process.argv[2],
     home = "/home/sun/"
     cloud = home + "/." + repo,
     gitdir = cloud + "/.git",
-    appsfile = "apps.list",
+    appsfile = "apps.xml",
     apps = [];
     files = [];
     newfiles = [];
@@ -374,10 +374,28 @@ app.post('/', function(req, res){
                      }); 
                  },
                  function (callback) {
-                    filesWatch(sync, function(err){
-                    }); 
+                     fs.unlink(appsfile, function (err){
+                         if (err) {
+                             callback(err);
+                         } else {
+                             apps.forEach(function (element, index, array){
+                                 fs.appendFileSync(appsfile, '<div class="app ' + element.flag + ' ' + element.category + '"><img src="img/apps/' + element.name + '.png" alt="' + element.name + '" ><h6 class="name">' + element.name + '</h6></div>', "utf8");
+                             });
+                             callback(null);
+                         } 
+                     });
                  },
                  ], function (err, results){
+                     if (err) {
+                         git.exec("reset", ["--hard"], function (err, msg){
+                             if (err) console.log(err.message);
+                             console.log("reset: " + msg);
+                         });
+                     } else {
+                         filesWatch(sync, function(err){
+                         }); 
+                     }
+                     res.sendfile("start.html");
                  });
 });
 
