@@ -1,10 +1,13 @@
-#### 软件分类：
-* internet  
-* multimedia
-* office
-* game
-* picture
-* development
-* system
-* accessory
-* other
+用户接口设计<br/>
+此设计借鉴了本地应用的操作习惯，为的是以后的扩展！<br/>
+类似此类的Web应用，是可以网全开发得更加的本地化！<br/>
+<br/>
+操作：<br/>
+用户通过单击、双击来选择同步或者不同不应用！<br/>
+右击来查看软件的详细情况！<br/>
+<br/>
+技术：<br/>
+jQuery<br/>
+bootstrap<br/>
+isotope<br/>
+

@@ -17,8 +17,6 @@ var userName = process.argv[2],
     gitdir = cloud + "/.git",
     appsfile = "apps.xml",
     apps = [];
-    files = [];
-    newfiles = [];
 var git = new Git({'git-dir': gitdir});
     github = new GitHub({
         version: "3.0.0"
