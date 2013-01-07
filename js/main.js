@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    var appPath = 'apps_all.list';
+    var appPath = 'apps.list';
     var selector = '.app';
     var sync = '.unsync';
     $container = $("#apps");

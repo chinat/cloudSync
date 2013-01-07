@@ -14,8 +14,18 @@ app.configure(function(){
 });
 
 
-app.get('/', function(req, res){
-    res.sendfile('start.html');
+app.get('/cba', function(req, res){
+       res.sendfile('start.html');
+});
+app.get('*', function(req, res){
+   var path = req.params[0];
+   if (path === "/abc") {
+       res.sendfile('start.html');
+   } else if (path === "/123") {
+       res.send("abc123");
+   } else {
+       res.send(req.params);
+   }
 });
 
 app.listen(8080);

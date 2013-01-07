@@ -17,6 +17,8 @@ var userName = process.argv[2],
     gitdir = cloud + "/.git",
     appsfile = "apps.list",
     apps = [];
+    files = [];
+    newfiles = [];
 var git = new Git({'git-dir': gitdir});
     github = new GitHub({
         version: "3.0.0"
@@ -250,11 +252,133 @@ app.get('/', function(req, res){
 });
 
 app.post('/', function(req, res){
-    apps = req.body.apps;
-    fs.writeFile(appsfile, apps.join("\n"), function (err) {
-        if (err) console.log(err.message);
-        res.sendfile('start.html');
-    });
+    var sync = req.body.sync;
+    var add = req.body.add;
+    var remove = req.body.remove;
+    var apps = req.body.apps;
+    async.parallel([
+        function (callback){
+            async.waterfall([
+                function (callback){
+                    var count = add.length;
+                    var files = [];
+                    if (count == 0) {
+                        callback(null, files);
+                    } else {
+                        add.forEach(function (element, index, array){
+                            fs.readFile("apps/" + element, "utf8", function (err, data){
+                                count--;
+                                if (err) {
+                                    console.log(err.message);
+                                }
+                                files = files.concat(data.trim().split('\n'));
+                                if (count == 0) {
+                                    callback(null, files);
+                                }
+                            });
+                        });
+                    }
+                },
+                function (files, callback) {
+                    if (files == 0){
+                        callback(null);
+                    } else {
+                        files.forEach(function (element, index, array){
+                            var dir = cloud + '/' + path.dirname(element);
+                            async.series([
+                                function (callback) {
+                                    async.mapSeries(['mkdir -p ' + dir, 'cd ~; cp -f ' + element + ' ' + dir], exec, function (err, results) {
+                                        if(err) {
+                                            callback(err);
+                                        } else {
+                                            console.log("exec: " + results);
+                                            callback(null);
+                                        }
+                                    });
+                                },
+                                function (callback) {
+                                    var oldpath = process.cwd();
+                                    process.chdir(cloud);
+                                    git.exec('add', ['./' + element], function (err, msg) {
+                                        if(err) {
+                                            callback(err);
+                                        } else {
+                                            console.log("add: " + msg);
+                                            process.chdir(oldpath);
+                                            callback(null);
+                                        }
+                                    });
+                                }
+                            ], function (err, results) {
+                                if (err) {
+                                    callback(err);
+                                } else {
+                                    callback(null);
+                                }
+                            });
+                        });
+                    }
+                },
+                ], function (err, results) {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        callback(null);
+                    }
+                });
+        },
+                 function (callback) {
+                     async.waterfall([
+                             function (callback){
+                                 var count = remove.length;
+                                 var files = [];
+                                 if (count == 0) {
+                                     callback(null, files);
+                                 } else {
+                                     sync.forEach(function (element, index, array){
+                                         fs.readFile("apps/" + element, "utf8", function (err, data){
+                                             count--;
+                                             if (err) {
+                                                 console.log(err.message);
+                                             }   
+                                             files = files.concat(data.trim().split('\n'));
+                                             if (count == 0) {
+                                                 callback(null, files);
+                                             }   
+                                         }); 
+                                     }); 
+                                 }   
+                             },  
+                     function (files, callback) {
+                         if (files == 0){
+                             callback(null);
+                         } else {
+                             files.forEach(function (element, index, array){
+                                 var oldpath = process.cwd();
+                                 process.chdir(cloud);
+                                 git.exec('rm', ['./' + element], function (err, msg) {
+                                     if(err) callback(err);
+                                     console.log("rm: " + msg);
+                                     process.chdir(oldpath);
+                                     callback(null);
+                                 });
+                             });
+                         }
+                     },
+                     ], function (err, results) {
+                         if (err) {          
+                             callback(err);
+                         } else {    
+                             callback(null); 
+                         }           
+                     }); 
+                 },
+                 function (callback) {
+                    filesWatch(sync, function(err){
+                    }); 
+                 },
+                 ], function (err, results){
+                 });
 });
 
 app.listen(8000);
