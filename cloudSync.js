@@ -16,8 +16,7 @@ var userName = process.argv[2],
     cloud = home + "/." + repo,
     gitdir = cloud + "/.git",
     appsfile = "apps.xml",
-    watchfiles = [],
-    lockfile = "cloudSync.lock";
+    watchfiles = [];
 var git = new Git({'git-dir': gitdir});
     github = new GitHub({
         version: "3.0.0"
@@ -28,6 +27,12 @@ github.authenticate({
     username: userName,
     password: passwd
 });
+
+app.engine('haml', engines.haml);
+app.engine('html', engines.hogan);
+
+app.use(express.static(__dirname + '/'));
+app.use(express.bodyParser());
 
 function init(callback){
 
@@ -123,99 +128,91 @@ function filesWatch(files, callback){
     });
 }
 
-app.engine('haml', engines.haml);
-app.engine('html', engines.hogan);
 
-app.use(express.static(__dirname + '/'));
-app.use(express.bodyParser());
 
-app.get('/', function(req, res){
-    if (fs.existsSync(lockfile)) {
-        res.send("同步进行中……");
+github.repos.watch({"user": userName, "repo": repo}, function (err, result){
+    if (err) {
+        if (err.code === 404) {
+            init(function (err) {
+                if (err) {
+                    console.log(err.message);
+                } else {
+                    app.listen(8000);
+                }
+            });
+        } else {
+            console.log(err.message);
+        }
     } else {
-        fs.appendFileSync(lockfile, "");
-        github.repos.watch({"user": userName, "repo": repo}, function (err, result){
-            if (err) {
-                if (err.code === 404) {
-                    init(function (err) {
-                        fs.unlinkSync(lockfile);
+        fs.exists(cloud, function (exists) {
+            if (exists) {
+                async.series([
+                    function (callback) {
+                        git.exec("reset", ["--hard"], function (err, msg) {
+                            if (err) console.log(err.message);
+                            console.log("reset: " + msg);
+                            callback(null);
+                        });
+                    },
+                    function (callback) {
+                        git.exec("checkout", ["master"], function (err, msg) {
+                            if (err) console.log(err.message);
+                            console.log("checkout: " + msg);
+                            callback(null);
+                        });
+                    },
+                    function (callback) {
+                        git.exec("reset", ["--hard"], function (err, msg) {
+                            if (err) console.log(err.message);
+                            console.log("reset: " + msg);
+                            callback(null);
+                        });
+                    },
+                    function (callback) {
+                        git.exec("pull", ["origin"], function (err, msg) {
+                            if (err) console.log(err.message);
+                            console.log("pull: " + msg);
+                            callback(null);
+                        });
+                    },
+                    function (callback) {
+                        async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * --exclude=. --exclude=..| pkexec tar -C / -xf -', "cp -f /" + appsfile + " .", 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git --exclude=. --exclude=..| tar -C ' + home + ' -xf - '], exec, function (err, results){
+                            if (err) {
+                                console.log(err.message);
+                            }
+                            console.log("exec: " + results);
+                            callback(null) 
+                        });
+                    },
+                    ], function (err, results){
                         if (err) {
-                            res.send(err.message);
+                            console.log(err.message);
                         } else {
-                            res.sendfile('start.html');
+                            app.listen(8000);
                         }
                     });
-                } else {
-                    fs.unlinkSync(lockfile);
-                    res.send(err.message);
-                }
             } else {
-                fs.exists(cloud, function (exists) {
-                    if (exists) {
-                        async.series([
-                            function (callback) {
-                                git.exec("reset", ["--hard"], function (err, msg) {
-                                    if (err) console.log(err.message);
-                                    console.log("reset: " + msg);
-                                    callback(null);
-                                });
-                            },
-                            function (callback) {
-                                git.exec("checkout", ["master"], function (err, msg) {
-                                    if (err) console.log(err.message);
-                                    console.log("checkout: " + msg);
-                                    callback(null);
-                                });
-                            },
-                            function (callback) {
-                                git.exec("reset", ["--hard"], function (err, msg) {
-                                    if (err) console.log(err.message);
-                                    console.log("reset: " + msg);
-                                    callback(null);
-                                });
-                            },
-                            function (callback) {
-                                git.exec("pull", ["origin"], function (err, msg) {
-                                    if (err) console.log(err.message);
-                                    console.log("pull: " + msg);
-                                    callback(null);
-                                });
-                            },
-                            function (callback) {
-                                async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * | pkexec tar -C / -xf -', "cp -f /" + appsfile + " .", 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git | tar -C ' + home + ' -xf - '], exec, function (err, results){
-                                    if (err) console.log(err.message);
-                                    console.log("exec: " + results);
-                                    callback(null) 
-                                });
-                            },
-                            ], function (err, results){
-                                fs.unlinkSync(lockfile);
-                                if (err) {
-                                    res.send(err.message);
-                                } else {
-                                    res.sendfile('start.html');
-                                }
-                            });
+                github.authenticate({
+                    type: "basic",
+                    username: userName,
+                    password: passwd
+                });
+                git.exec("clone", ["git@github.com:" + userName + "/" + repo + ".git  ~/.qomoCloud"], function (err, msg) {
+                    if (err) {
+                        console.log(err.message);
                     } else {
-                        github.authenticate({
-                            type: "basic",
-                            username: userName,
-                            password: passwd
-                        });
-                        git.exec("clone", ["git@github.com:" + userName + "/" + repo + ".git  ~/.qomoCloud"], function (err, msg) {
-                            fs.unlinkSync(lockfile);
-                            if (err) {
-                                res.send(err.message);
-                            } else {
-                                res.sendfile("start.html");
-                            }
-                        });
+                        app.listen(8000);
                     }
                 });
             }
         });
     }
 });
+
+app.get('/', function(req, res){
+    res.sendfile('start.html');
+});
+
 
 app.post('/', function(req, res){
     var sync = [];
@@ -231,8 +228,6 @@ app.post('/', function(req, res){
     console.log("add:" + add);
     console.log("remove:" + remove);
     console.log("apps:" + apps);
-    res.send("refresh");
-    res.end();
     async.parallel([
         function (callback){
             async.waterfall([
@@ -314,7 +309,7 @@ app.post('/', function(req, res){
                                  if (count == 0) {
                                      callback(null, files);
                                  } else {
-                                     sync.forEach(function (element, index, array){
+                                     remove.forEach(function (element, index, array){
                                          fs.readFile("apps/" + element, "utf8", function (err, data){
                                              count--;
                                              if (err) {
@@ -352,18 +347,6 @@ app.post('/', function(req, res){
                          }           
                      }); 
                  },
-                 function (callback) {
-                     fs.unlink(appsfile, function (err){
-                         if (err) {
-                             callback(err);
-                         } else {
-                             apps.forEach(function (element, index, array){
-                                 fs.appendFileSync(appsfile, '<div class="app ' + element.flag + ' ' + element.category + '"><img src="img/apps/' + element.name + '.png" alt="' + element.name + '" ><h6 class="name">' + element.name + '</h6></div>', "utf8");
-                             });
-                             callback(null);
-                         } 
-                     });
-                 },
                  ], function (err, results){
                      if (err) {
                          git.exec("reset", ["--hard"], function (err, msg){
@@ -371,11 +354,20 @@ app.post('/', function(req, res){
                              console.log("reset: " + msg);
                          });
                      } else {
-                         filesWatch(sync, function(err){
-                         }); 
-                        res.send("refresh");
+                         //                         filesWatch(sync, function(err){
+                         //                         }); 
+                         fs.unlink(appsfile, function (err){
+                             if (err) {
+                                 console.log(err.message);
+                             } else {
+                                 apps.forEach(function (element, index, array){
+                                     fs.appendFileSync(appsfile, '<div class="app ' + element.flag + ' ' + element.category + '"><img src="img/apps/' + element.name + '.png" alt="' + element.name + '" ><h6 class="name">' + element.name + '</h6></div>', "utf8");
+                                 });
+                             } 
+                         });
+                         res.send("refresh");
+                         res.end();
                      }
                  });
 });
 
-app.listen(8000);
