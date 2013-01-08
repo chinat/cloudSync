@@ -16,7 +16,8 @@ var userName = process.argv[2],
     cloud = home + "/." + repo,
     gitdir = cloud + "/.git",
     appsfile = "apps.xml",
-    apps = [];
+    watchfiles = [],
+    lockfile = "cloudSync.lock";
 var git = new Git({'git-dir': gitdir});
     github = new GitHub({
         version: "3.0.0"
@@ -30,143 +31,94 @@ github.authenticate({
 
 function init(callback){
 
-    fs.readFile(appsfile, "utf8", function (err, data){
-        if (err) {
-            callback(err);
-        } else {
-            apps = data.trim().split('\n');
-            console.log("apps: " + apps);
-            async.waterfall([
-                function (callback) {
-                    async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud], exec, function (err, results){
-                        if (err) console.log(err.message);
-                        console.log("exec: " + results);
-                        callback(null) 
-                    });
-                },
-                function (callback) {
-                    git.exec("init", function (err, msg) {
-                        if (err) console.log(err.message);
-                        console.log("init: " + msg);
-                        callback(null);
-                    });
-                },
-                function (callback) {
-                    var files = [];
-                    var count = apps.length;
-
-                    if (count == 0) {
-                        callback(null, files);
-                    } else {
-                        apps.forEach(function (element, index, array){
-                            fs.readFile("apps/" + element, "utf8", function (err, data){
-                                count--;
-                                if (err) {
-                                    console.log(err.message);
-                                }
-                                files = files.concat(data.trim().split('\n'));
-                                if (count == 0) {
-                                    callback(null, files);
-                                }
-                            });
-                        });
-                    }
-                },
-                function (files, callback) {
-                    if (files == 0){
-                        callback(null);
-                    } else {
-                        files.forEach(function (element, index, array){
-                            var dir = cloud + '/' + path.dirname(element);
-                            async.series([
-                                function (callback) {
-                                    async.mapSeries(['mkdir -p ' + dir, 'cd ~; cp -f ' + element + ' ' + dir], exec, function (err, results) {
-                                        if(err) callback(err);
-                                        console.log("exec: " + results);
-                                        callback(null);
-                                    });
-                                },
-                                function (callback) {
-                                    var oldpath = process.cwd();
-                                    process.chdir(home);
-                                    git.exec('add', ['./' + element], function (err, msg) {
-                                        if(err) callback(err);
-                                        console.log("add: " + msg);
-                                        process.chdir(oldpath);
-                                        callback(null);
-                                    });
-                                }
-                                ], function (err, results) {
-                                    if (err) console.log(err.message);
-                                    callback(null);
-                                });
-                        });
-                    }
-                },
-                function (callback) {
-                    git.exec("commit", ['-m "qomoCloud init"'], function (err, msg) {
-                        if (err) console.log(err.message);
-                        console.log("commit: " + msg);
-                        callback(null);
-                    });
-                },
-                function (callback) {
-                    github.authenticate({
-                        type: "basic",
-                    username: userName,
-                    password: passwd
-                    });
-                    github.repos.create(
-                            {
-                                "name": repo,
-                        "description": "This is qomoCloud repo",
-                        "homepage": "https://github.com",
-                        "private": false,
-                        "has_issues": true,
-                        "has_wiki": true,
-                        "has_downloads": true
-                            }, function (err, res){
-                                if (err) console.log(err.message);
-                                console.log("repos:" + res);
-                                callback(null);
-                            });
-                },
-                function (callback) {
-                    git.exec("remote", ["add origin git@github.com:" + userName + "/" + repo + ".git"], function (err, msg) {
-                        if (err) console.log(err.message);
-                        console.log("remote: " + msg);
-                        callback(null);
-                    });
-                },
-                function (callback) {
-                    git.exec("push", ["-u origin master"], function (err, msg) {
-                        if (err) console.log(err.message);
-                        console.log("push: " + msg);
-                        callback(null);
-                    });
-                },
-                ], function (err, result) {
-                    callback(err);
+    async.waterfall([
+            function (callback) {
+                async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud, "cp " + appsfile + " " + cloud], exec, function (err, results){
+                    if (err) console.log(err.message);
+                    console.log("exec: " + results);
+                    callback(null) 
                 });
-        }
-    });
+            },
+            function (callback) {
+                git.exec("init", function (err, msg) {
+                    if (err) console.log(err.message);
+                    console.log("init: " + msg);
+                    callback(null);
+                });
+            },
+            function (callback) {
+                var oldpath = process.cwd();
+                process.chdir(cloud);
+                git.exec('add', ['./' + appsfile], function (err, msg) {
+                    if(err) callback(err);
+                    console.log("add: " + msg);
+                    process.chdir(oldpath);
+                    callback(null);
+                });
+            },
+            function (callback) {
+                git.exec("commit", ['-m "qomoCloud init"'], function (err, msg) {
+                    if (err) console.log(err.message);
+                    console.log("commit: " + msg);
+                    callback(null);
+                });
+            },
+            function (callback) {
+                github.authenticate({
+                    type: "basic",
+                username: userName,
+                password: passwd
+                });
+                github.repos.create(
+                        {
+                            "name": repo,
+                    "description": "This is qomoCloud repo",
+                    "homepage": "https://github.com",
+                    "private": false,
+                    "has_issues": true,
+                    "has_wiki": true,
+                    "has_downloads": true
+                        }, function (err, res){
+                            if (err) console.log(err.message);
+                            console.log("repos:" + res);
+                            callback(null);
+                        });
+            },
+            function (callback) {
+                git.exec("remote", ["add origin git@github.com:" + userName + "/" + repo + ".git"], function (err, msg) {
+                    if (err) console.log(err.message);
+                    console.log("remote: " + msg);
+                    callback(null);
+                });
+            },
+            function (callback) {
+                git.exec("push", ["-u origin master"], function (err, msg) {
+                    if (err) console.log(err.message);
+                    console.log("push: " + msg);
+                    callback(null);
+                });
+            },
+            ], function (err, result) {
+                callback(err);
+            });
 }
 
-function watch(callback){
-    fs.readFile("file.list", "utf8", function (err, data){
-        if (err) {
-            console.log(err.message);
-            return;
-        }
-        var files = data.split('\n');
-        files.forEach(function (element, index, array){
-            var dir = path.dirname(element),
-                file = path.basename(element);
-            console.log(element);
-            fs.watch('/' + element, function (event, file){
-                console.log('event is: ' + event);
-                callback(file);
-            });
+function filesWatch(files, callback){
+    if (watchfiles.length > 0) {
+        watchfiles.forEach(function (element, index, array){
+            var dir = path.dirname(element);
+            var file = path.basename(element);
+            if (dir === "_HOME") dir = home;
+            fs.unwatchFile('/' + dir + '/' + file);
+        });
+    }
+    files.forEach(function (element, index, array){
+        var dir = path.dirname(element);
+        var file = path.basename(element);
+        if (dir === "_HOME") dir = home;
+        fs.watchFile('/' + dir + '/' + file, function (curr, prev){
+            console.log('the current modification time is: ' + curr.mtime);
+            callback();
         });
     });
 }
@@ -178,82 +130,109 @@ app.use(express.static(__dirname + '/'));
 app.use(express.bodyParser());
 
 app.get('/', function(req, res){
-    github.repos.watch({"user": userName, "repo": repo}, function (err, result){
-        if (err) {
-            if (err.code === 404) {
-                init(function (err) {
-                    if (err) {
-                        res.send(err.message);
-                    } else {
-                        res.sendfile('start.html');
-                    }
-                });
-            } else {
-                res.send(err.message);
-            }
-        } else {
-            fs.exists(cloud, function (exists) {
-                if (exists) {
-                    async.series([
-                        function (callback) {
-                            git.exec("reset", ["--hard"], function (err, msg) {
-                                if (err) console.log(err.message);
-                                console.log("reset: " + msg);
-                                callback(null);
-                            });
-                        },
-                        function (callback) {
-                            git.exec("checkout", ["master"], function (err, msg) {
-                                if (err) console.log(err.message);
-                                console.log("checkout: " + msg);
-                                callback(null);
-                            });
-                        },
-                        function (callback) {
-                            git.exec("reset", ["--hard"], function (err, msg) {
-                                if (err) console.log(err.message);
-                                console.log("reset: " + msg);
-                                callback(null);
-                            });
-                        },
-                        function (callback) {
-                            git.exec("pull", ["origin"], function (err, msg) {
-                                if (err) console.log(err.message);
-                                console.log("pull: " + msg);
-                                callback(null);
-                            });
-                        },
-                        ], function (err, results){
-                            if (err) {
-                                res.send(err.message);
-                            } else {
-                                res.sendfile('start.html');
-                            }
-                        });
-                } else {
-                    github.authenticate({
-                        type: "basic",
-                        username: userName,
-                        password: passwd
-                    });
-                    git.exec("clone", ["git@github.com:" + userName + "/" + repo + ".git  ~/.qomoCloud"], function (err, msg) {
+    if (fs.existsSync(lockfile)) {
+        res.send("同步进行中……");
+    } else {
+        fs.appendFileSync(lockfile, "");
+        github.repos.watch({"user": userName, "repo": repo}, function (err, result){
+            if (err) {
+                if (err.code === 404) {
+                    init(function (err) {
+                        fs.unlinkSync(lockfile);
                         if (err) {
                             res.send(err.message);
                         } else {
-                            res.sendfile("start.html");
+                            res.sendfile('start.html');
                         }
                     });
-               }
-            });
-        }
-    });
+                } else {
+                    fs.unlinkSync(lockfile);
+                    res.send(err.message);
+                }
+            } else {
+                fs.exists(cloud, function (exists) {
+                    if (exists) {
+                        async.series([
+                            function (callback) {
+                                git.exec("reset", ["--hard"], function (err, msg) {
+                                    if (err) console.log(err.message);
+                                    console.log("reset: " + msg);
+                                    callback(null);
+                                });
+                            },
+                            function (callback) {
+                                git.exec("checkout", ["master"], function (err, msg) {
+                                    if (err) console.log(err.message);
+                                    console.log("checkout: " + msg);
+                                    callback(null);
+                                });
+                            },
+                            function (callback) {
+                                git.exec("reset", ["--hard"], function (err, msg) {
+                                    if (err) console.log(err.message);
+                                    console.log("reset: " + msg);
+                                    callback(null);
+                                });
+                            },
+                            function (callback) {
+                                git.exec("pull", ["origin"], function (err, msg) {
+                                    if (err) console.log(err.message);
+                                    console.log("pull: " + msg);
+                                    callback(null);
+                                });
+                            },
+                            function (callback) {
+                                async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * | pkexec tar -C / -xf -', "cp -f /" + appsfile + " .", 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git | tar -C ' + home + ' -xf - '], exec, function (err, results){
+                                    if (err) console.log(err.message);
+                                    console.log("exec: " + results);
+                                    callback(null) 
+                                });
+                            },
+                            ], function (err, results){
+                                fs.unlinkSync(lockfile);
+                                if (err) {
+                                    res.send(err.message);
+                                } else {
+                                    res.sendfile('start.html');
+                                }
+                            });
+                    } else {
+                        github.authenticate({
+                            type: "basic",
+                            username: userName,
+                            password: passwd
+                        });
+                        git.exec("clone", ["git@github.com:" + userName + "/" + repo + ".git  ~/.qomoCloud"], function (err, msg) {
+                            fs.unlinkSync(lockfile);
+                            if (err) {
+                                res.send(err.message);
+                            } else {
+                                res.sendfile("start.html");
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
 });
 
 app.post('/', function(req, res){
-    var sync = req.body.sync;
-    var add = req.body.add;
-    var remove = req.body.remove;
-    var apps = req.body.apps;
+    var sync = [];
+    var add = [];
+    var remove = [];
+    var apps = {};
+
+    if (typeof req.body.sync !== 'undefined') sync = req.body.syn;
+    if (typeof req.body.add !== 'undefined') add = req.body.add;
+    if (typeof req.body.remove !== 'undefined') remove = req.body.remove;
+    if (typeof req.body.apps !== 'undefined') apps = req.body.apps;
+    console.log("sync:" + sync);
+    console.log("add:" + add);
+    console.log("remove:" + remove);
+    console.log("apps:" + apps);
+    res.send("refresh");
+    res.end();
     async.parallel([
         function (callback){
             async.waterfall([
@@ -278,14 +257,16 @@ app.post('/', function(req, res){
                     }
                 },
                 function (files, callback) {
-                    if (files == 0){
+                    if (files.length === 0){
                         callback(null);
                     } else {
                         files.forEach(function (element, index, array){
-                            var dir = cloud + '/' + path.dirname(element);
+                            var dir = path.dirname(element);
+                            if (dir === "_HOME") dir = "";
+                            dir = cloud + '/' + dir; 
                             async.series([
                                 function (callback) {
-                                    async.mapSeries(['mkdir -p ' + dir, 'cd ~; cp -f ' + element + ' ' + dir], exec, function (err, results) {
+                                    async.mapSeries(['mkdir -p ' + dir, 'cd  ' + home + '; cp -fa ' + element + ' ' + dir], exec, function (err, results) {
                                         if(err) {
                                             callback(err);
                                         } else {
@@ -392,8 +373,8 @@ app.post('/', function(req, res){
                      } else {
                          filesWatch(sync, function(err){
                          }); 
+                        res.send("refresh");
                      }
-                     res.sendfile("start.html");
                  });
 });
 
