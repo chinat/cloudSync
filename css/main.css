@@ -32,6 +32,12 @@ body{
     background-color: black;
     opacity: 0.5;
     display: none;
+    text-align: center;
+    color: white;
+}
+
+#front p {
+    margin-top: 16%;
 }
 
 /*header*/
