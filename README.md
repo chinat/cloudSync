@@ -1,5 +1,5 @@
 #### 软件分类：
-* internet  
+* internet
 * multimedia
 * office
 * game
@@ -8,3 +8,4 @@
 * system
 * accessory
 * other
+

@@ -7,43 +7,50 @@
  * all the apps with their stat.
  *
  */
-
+var categories = new Array('internet', 'multimedia', 'office', 'game', 'picture', 'development', 'system', 'accessory', 'other');
 
 $("#submit button").click(function() {
 
-
-    var remove = '[', add = '[';
+    $("#front").css({display: "block"});
+    var remove = new Array(), add = new Array();
+    var i = 0, j = 0, k;
     $(".changed").parent().each(function(){ 
 	if($(this).hasClass('unsync'))
-            remove += $(this).find('.name').text() + ",";
+            remove[i++] = $(this).find('.name').text();
         else 
-	    add += $(this).find('.name').text() + ',';
+	    add[j++] = $(this).find('.name').text();
     });
-    remove = (remove.length < 2 ? '' : remove.substring(0, remove.length - 1)) + ']';
-    add = (add.length < 2 ? '' : add.substring(0, add.length - 1)) + ']';
 
-    var upload_data = '[', sync = '[';
-    $(".app").each(function() {
-	if($(this).hasClass('unsync'))
-            upload_data += '{ name:' + $(this).find('.name').text() + ', flag:unsync},';
-        else {
-            upload_data += '{ name:' + $(this).find('.name').text() + ', flag:sync},';
-	    sync += $(this).find('.name').text() + ',';
-	}
-    });
-    upload_data = (upload_data.length < 2 ? '' : upload_data.substring(0, upload_data.length - 1)) + ']';
-    sync = (sync.length < 2 ? '' : sync.substring(0, sync.length - 1)) + ']';
+    var upload_data = new Array(), sync = new Array();
+    i = 0, j = 0;
+    for(k = 0;k < categories.length; k++) {
+        $("." + categories[k]).each(function() {
+	    if($(this).hasClass('unsync'))
+                upload_data[i++] = { name:$(this).find('.name').text(), flag:'unsync', category: categories[k]};
+            else {
+                upload_data[i++] = { name:$(this).find('.name').text(), flag:'sync', category: categories[k]};
+	        sync[j++] = $(this).find('.name').text();
+	    }
+        });
+    }
 
     $.ajax({
         url: "/",
 	type: "POST",
-	data: '{add:' + add + ', remove:' + remove + ', apps:' + upload_data + ', sync:' + sync + '}',
-	dataType: "json",
+	data: {add: add, remove: remove, apps: upload_data, sync: sync},
+	dataType: "text",
 	success: function(data, textStatus) {
-	    alert("Succeed " + data);
+	    if(data === "refresh") {
+		window.location.reload();
+	    }
+	    return false;
 	},
 	error: function(XMLHttpRequest, texStatus, errorThrown) {
-	    alert("Sync Failed");
+	    //alert("Sync Failed");
+	    $("#front").css({display: "none"});
+	    return false;
 	}
     }); 
 });
+
+

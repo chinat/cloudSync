@@ -21,6 +21,25 @@ body{
     height: 100%;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Arial, sans-serif;
 }
+
+#front {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    background-color: black;
+    opacity: 0.5;
+    display: none;
+    text-align: center;
+    color: white;
+}
+
+#front p {
+    margin-top: 16%;
+}
+
 /*header*/
 
 /*end of header*/
@@ -64,16 +83,16 @@ body{
     clear: both;
 }
 
-#timer {
-    position: absolute;
-    left: 49%;
-    top: 45%;
-	z-index: 4;
-}
-
 .btn-group {
     margin: 0px;
     padding: 0px;
+}
+
+#submit {
+    float: left;
+    margin-left: 2%;
+    display: none;
+    z-index: 4;
 }
 
 #apps {
