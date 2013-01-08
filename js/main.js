@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    var appPath = 'apps.list';
+    var appPath = 'apps.xml';
     var selector = '.app';
     var sync = '.unsync';
     $container = $("#apps");
