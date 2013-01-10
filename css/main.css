@@ -20,6 +20,7 @@ body{
     width: 100%;
     height: 100%;
     font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Arial, sans-serif;
+
 }
 
 #front {
@@ -41,8 +42,39 @@ body{
 }
 
 /*header*/
+#header {
+    height: 50px;
+    text-align: center;
+}
 
+#header h1 {
+    padding-top: 30px;
+}
 /*end of header*/
+
+/* login */
+#login {
+    width: 20%;
+    float: left;
+    clear: both;
+    margin: 8% 40% 16% 40%;
+}
+
+#login input {
+    float: left;
+    clear: both;
+    width: 97%;
+    padding-left: 5px;
+    padding-right: 0;
+}
+
+#login-submit {
+    width: 100%;
+    margin: 0;
+    padding: 4px 10px 4px 5px;
+}
+
+/* end of login */
 
 /*body*/
 #body {
@@ -54,7 +86,7 @@ body{
     margin-right: 4%;
     margin-top: 50px;
     margin-bottom: 50px;
-    min-height: 500px;
+    display: none;
 }
 
 /*body-top*/
@@ -115,14 +147,13 @@ body{
 
 /*footer*/
 #footer {
-    float: left;
-    clear: both;
+    position: absolute;
+    bottom: 10px;
     text-align: center;
     font-weight: bold;
     font-family: monospace, Baskerville, "Heisi Mincho W3", Symbol, serif;
     font-size: small;
     width: 100%;
-    padding-bottom: 15px;
 }
 /*end of footer*/
 
