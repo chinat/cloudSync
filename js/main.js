@@ -1,4 +1,3 @@
-$(document).ready(function() {
     var appPath = 'apps.xml';
     var selector = '.app';
     var sync = '.unsync';
@@ -82,5 +81,3 @@ $(document).ready(function() {
         $container.isotope({filter: selector + sync});
         return true; 
     });
-    
-});

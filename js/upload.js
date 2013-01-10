@@ -41,7 +41,9 @@ $("#submit button").click(function() {
 	dataType: "text",
 	success: function(data, textStatus) {
 	    if(data === "refresh") {
-		window.location.reload();
+		//window.location.reload();
+		$("#apps").empty();
+		$.getScript("js/main.js");
 	    }
 	    return false;
 	},
@@ -52,5 +54,3 @@ $("#submit button").click(function() {
 	}
     }); 
 });
-
-
