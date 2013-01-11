@@ -10,7 +10,6 @@
 var categories = new Array('internet', 'multimedia', 'office', 'game', 'picture', 'development', 'system', 'accessory', 'other');
 
 $("#submit button").click(function() {
-
     $("#front").css({display: "block"});
     var remove = new Array(), add = new Array();
     var i = 0, j = 0, k;
@@ -41,14 +40,15 @@ $("#submit button").click(function() {
 	dataType: "text",
 	success: function(data, textStatus) {
 	    if(data === "refresh") {
-		//window.location.reload();
-		$("#apps").empty();
-		$.getScript("js/main.js");
+		    //window.location.reload();
+		    $("#apps").empty();
+            $("#front").css({display: "none"});
+		    load();
+		    submit();
 	    }
 	    return false;
 	},
 	error: function(XMLHttpRequest, texStatus, errorThrown) {
-	    //alert("Sync Failed");
 	    $("#front").css({display: "none"});
 	    return false;
 	}
