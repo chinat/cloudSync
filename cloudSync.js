@@ -8,28 +8,15 @@ var fs = require("fs"),
     express = require('express'),
     engines = require('consolidate');
 
+var date = null;
+var watchfiles = [];
 var app = express();
-var userName = "",
-    passwd = "",
-    repo = "qomoCloud",
-    home = "~",
-    cloud = home + "/." + repo,
-    gitdir = cloud + "/.git",
-    appsfile = "apps.xml",
-    date = null,
-    watchfiles = [];
-var git = new Git({'git-dir': gitdir}),
-    github = new GitHub({
-        version: "3.0.0"
-    });
-
-exec("echo $HOME", function (error, stdout, stderr){ home = stdout; });
-app.engine('haml', engines.haml);
-app.engine('html', engines.hogan);
-
-app.use(express.static(__dirname + '/'));
-app.use(express.bodyParser());
-
+var userName, passwd, home, cloud, gitdir, git;
+var appsfile = "apps.xml";
+var repo = "qomoCloud";
+var github = new GitHub({
+    version: "3.0.0"
+});
 
 function init(loadIndex){
 
@@ -51,7 +38,7 @@ function init(loadIndex){
                 });
             },
             function (callback) {
-                async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud, "cp " + appsfile + " " + cloud], exec, function (err, results){
+                async.mapSeries([' ls' + cloud, "mkdir -p " + cloud, "cp " + appsfile + " " + cloud], exec, function (err, results){
                     console.log("exec: " + results);
                     callback(err);
                 });
@@ -137,104 +124,180 @@ function filesWatch(files, callback){
                     git.exec('add', ['./' + dir + '/' + file], function (err, msg) {
                         console.log("add: " + msg);
                         process.chdir(oldpath);
-                        date = curr.mtime;
-                        callback(err);
+                        callback(err, curr.time);
                     });
                 }
             });
         });
     });
+    callback(null, new Date());
 }
 
-app.get('/', function (req, res){
-    res.sendfile("start.html");
-});
+exec("echo $HOME", function (error, stdout, stderr){ 
+    home = stdout.trim();
+    cloud = home + "/." + repo;
+    gitdir = cloud + "/.git";
+    git = new Git({'git-dir': gitdir});
 
-app.post('/login', function (req, res){  
-    userName = req.body.name;            
-    passwd = req.body.password;          
+    app.engine('haml', engines.haml);
+    app.engine('html', engines.hogan);
 
-    github.authenticate({                
-        type: "basic",                   
-        username: userName,              
-        password: passwd                 
-    });                                  
-    github.repos.watch({"user": userName, "repo": repo}, function (err, result){
-        if (err) {
-            if (err.code === 404) {
-                init(function (msg) {
-                    res.end(msg);             
-                });               
-            } else {
-                res.end("fail");
-            }
-        } else {
-            fs.exists(cloud, function (exists) {
-                async.series([
-                    function (callback) {
-                        git.exec("pull", ["origin"], function (err, msg) {
-                            console.log("pull: " + msg);
-                            exec('cp ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
-                                if (error) {
-                                    res.end("fail");
-                                } else {
-                                    res.end("success");
-                                }                             
-                            });
-                            callback(err);
-                        });
-                    },
-                    function (callback) {
-                        async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * --exclude=. --exclude=..| pkexec tar -C / -xf -', 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git --exclude=. --exclude=..| tar -C ' + home + ' -xf - '], exec, function (err, results){
-                            console.log("exec: " + results);
-                            callback(err);
-                        });
-                    }
-                    ], function (err, results){
-                        if (err) 
-                            console.log(err.message);
-                    } 
-                    );
-            });
-        }
+    app.use(express.static(__dirname + '/'));
+    app.use(express.bodyParser());
+
+    app.get('/', function (req, res){
+        res.sendfile("start.html");
     });
-});
 
+    app.post('/login', function (req, res){  
+        userName = req.body.name;            
+        passwd = req.body.password;          
 
-app.post('/', function(req, res){
-    var sync = [];
-    var add = [];
-    var remove = [];
-    var apps = [];
-
-    if (typeof req.body.sync !== 'undefined') sync = req.body.sync;
-    if (typeof req.body.add !== 'undefined') add = req.body.add;
-    if (typeof req.body.remove !== 'undefined') remove = req.body.remove;
-    if (typeof req.body.apps !== 'undefined') apps = req.body.apps;
-
-    async.parallel([
-        function (callback){
-            async.waterfall([
-                function (callback){
-                    var count = add.length;
-                    var files = [];
-                    if (count === 0) {
-                        callback(null, files);
-                    } else {
-                        add.forEach(function (element, index, array){
-                            fs.readFile("apps/" + element, "utf8", function (err, data){
-                                count--;
-                                if (err) {
-                                    console.log(err.message);
-                                }
-                                files = files.concat(data.trim().split(/\n+/));
-                                if (count === 0) {
-                                    callback(null, files);
-                                }
+        github.authenticate({                
+            type: "basic",                   
+            username: userName,              
+            password: passwd                 
+        });                                  
+        github.repos.watch({"user": userName, "repo": repo}, function (err, result){
+            if (err) {
+                if (err.code === 404) {
+                    init(function (msg) {
+                        res.end(msg);             
+                    });               
+                } else {
+                    res.end("fail");
+                }
+            } else {
+                fs.exists(cloud, function (exists) {
+                    async.series([
+                        function (callback) {
+                            git.exec("pull", ["origin"], function (err, msg) {
+                                console.log("pull: " + msg);
+                                exec('cp ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
+                                    if (error) {
+                                        res.end("fail");
+                                    } else {
+                                        res.end("success");
+                                    }                             
+                                });
+                                callback(err);
                             });
-                        });
-                    }
-                },
+                        },
+                        function (callback) {
+                            async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * --exclude=. --exclude=..| pkexec tar -C / -xf -', 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git --exclude=. --exclude=..| tar -C ' + home + ' -xf - '], exec, function (err, results){
+                                console.log("exec: " + results);
+                                callback(err);
+                            });
+                        }
+                        ], function (err, results){
+                            if (err) 
+                                console.log(err.message);
+                        } 
+                        );
+                });
+            }
+        });
+    });
+
+
+    app.post('/', function(req, res){
+        var sync = [];
+        var add = [];
+        var remove = [];
+        var apps = [];
+
+        if (typeof req.body.sync !== 'undefined') sync = req.body.sync;
+        if (typeof req.body.add !== 'undefined') add = req.body.add;
+        if (typeof req.body.remove !== 'undefined') remove = req.body.remove;
+        if (typeof req.body.apps !== 'undefined') apps = req.body.apps;
+
+        async.parallel([
+            function (callback){
+                async.waterfall([
+                    function (callback){
+                        var count = add.length;
+                        var files = [];
+                        if (count === 0) {
+                            callback(null, files);
+                        } else {
+                            add.forEach(function (element, index, array){
+                                fs.readFile("apps/" + element, "utf8", function (err, data){
+                                    count--;
+                                    if (err) {
+                                        console.log(err.message);
+                                    }
+                                    files = files.concat(data.trim().split(/\n+/));
+                                    if (count === 0) {
+                                        callback(null, files);
+                                    }
+                                });
+                            });
+                        }
+                    },
+                             function (files, callback) {
+                                 if (files.length === 0){
+                                     callback(null);
+                                 } else {
+                                     files.forEach(function (element, index, array){
+                                         var dir = path.dirname(element);
+                                         var file = path.basename(element);
+                                         if (dir === "_HOME") dir = "./";
+                                         async.series([
+                                             function (callback) {
+                                                 async.mapSeries(['mkdir -p ' + cloud + '/' + dir, 'cd  ' + home + '; cp -fa ' + dir + '/' + file + ' ' + cloud + '/' + dir], exec, function (err, results) {
+                                                     if(err) {
+                                                         callback(err);
+                                                     } else {
+                                                         console.log("exec: " + results);
+                                                         callback(null);
+                                                     }
+                                                 });
+                                             },
+                                             function (callback) {
+                                                 var oldpath = process.cwd();
+                                                 process.chdir(cloud);
+                                                 git.exec('add', ['./' + dir + '/' + file], function (err, msg) {
+                                                     if(err) {
+                                                         callback(err);
+                                                     } else {
+                                                         console.log("add: " + msg);
+                                                         process.chdir(oldpath);
+                                                         callback(null);
+                                                     }
+                                                 });
+                                             }
+                                         ], function (err, results) {
+                                             callback(err);
+                                         });
+                                     });
+                                 }
+                             }
+                ], function (err, results) {
+                    callback(err);
+                });
+            },
+                     function (callback) {
+                         async.waterfall([
+                                 function (callback){
+                                     var count = remove.length;
+                                     var files = [];
+                                     if (count === 0) {
+                                         callback(null, files);
+                                     } else {
+                                         remove.forEach(function (element, index, array){
+                                             fs.readFile("apps/" + element, "utf8", function (err, data){
+                                                 count--;
+                                                 if (err) {
+                                                     console.log(err.message);
+                                                 }   
+                                                 files = files.concat(data.trim().split('\n'));
+                                                 if (count === 0) {
+                                                     callback(null, files);
+                                                 }   
+                                             }); 
+                                         }); 
+                                     }   
+                                 },  
                          function (files, callback) {
                              if (files.length === 0){
                                  callback(null);
@@ -242,179 +305,118 @@ app.post('/', function(req, res){
                                  files.forEach(function (element, index, array){
                                      var dir = path.dirname(element);
                                      var file = path.basename(element);
-                                     if (dir === "_HOME") dir = "./";
-                                     async.series([
-                                         function (callback) {
-                                             async.mapSeries(['mkdir -p ' + cloud + '/' + dir, 'cd  ' + home + '; cp -fa ' + dir + '/' + file + ' ' + cloud + '/' + dir], exec, function (err, results) {
-                                                 if(err) {
-                                                     callback(err);
-                                                 } else {
-                                                     console.log("exec: " + results);
-                                                     callback(null);
-                                                 }
-                                             });
-                                         },
-                                         function (callback) {
-                                             var oldpath = process.cwd();
-                                             process.chdir(cloud);
-                                             git.exec('add', ['./' + dir + '/' + file], function (err, msg) {
-                                                 if(err) {
-                                                     callback(err);
-                                                 } else {
-                                                     console.log("add: " + msg);
-                                                     process.chdir(oldpath);
-                                                     callback(null);
-                                                 }
-                                             });
-                                         }
-                                     ], function (err, results) {
-                                         callback(err);
+                                     var oldpath = process.cwd();
+                                     if (dir === "_HOME") dir = "";
+                                     process.chdir(cloud);
+                                     git.exec('rm', [' -f ./' + dir + '/' + file], function (err, msg) {
+                                         if(err) callback(err);
+                                         console.log("rm: " + msg);
+                                         process.chdir(oldpath);
+                                         callback(null);
                                      });
                                  });
                              }
-                         }
-            ], function (err, results) {
-                callback(err);
-            });
-        },
-                 function (callback) {
-                     async.waterfall([
-                             function (callback){
-                                 var count = remove.length;
-                                 var files = [];
-                                 if (count === 0) {
-                                     callback(null, files);
+                         },
+                         function (callback) {
+                             fs.unlink(appsfile, function (err){
+                                 if (err) {
+                                     callback(err);
                                  } else {
-                                     remove.forEach(function (element, index, array){
-                                         fs.readFile("apps/" + element, "utf8", function (err, data){
-                                             count--;
-                                             if (err) {
-                                                 console.log(err.message);
-                                             }   
-                                             files = files.concat(data.trim().split('\n'));
-                                             if (count === 0) {
-                                                 callback(null, files);
-                                             }   
-                                         }); 
-                                     }); 
-                                 }   
-                             },  
-                     function (files, callback) {
-                         if (files.length === 0){
-                             callback(null);
-                         } else {
-                             files.forEach(function (element, index, array){
-                                 var dir = path.dirname(element);
-                                 var file = path.basename(element);
-                                 var oldpath = process.cwd();
-                                 if (dir === "_HOME") dir = "";
-                                 process.chdir(cloud);
-                                 git.exec('rm', [' -f ./' + dir + '/' + file], function (err, msg) {
-                                     if(err) callback(err);
-                                     console.log("rm: " + msg);
-                                     process.chdir(oldpath);
+                                     apps.forEach(function (element, index, array){
+                                         fs.appendFileSync(appsfile, '<div class="app ' + element.flag + ' ' + element.category + '"><img src="img/apps/' + element.name + '.png" alt="' + element.name + '" ><h6 class="name">' + element.name + '</h6></div>', "utf8");
+                                     });
                                      callback(null);
-                                 });
+                                 } 
                              });
                          }
-                     },
-                     function (callback) {
-                         fs.unlink(appsfile, function (err){
-                             if (err) {
-                                 callback(err);
-                             } else {
-                                 apps.forEach(function (element, index, array){
-                                     fs.appendFileSync(appsfile, '<div class="app ' + element.flag + ' ' + element.category + '"><img src="img/apps/' + element.name + '.png" alt="' + element.name + '" ><h6 class="name">' + element.name + '</h6></div>', "utf8");
-                                 });
-                                 callback(null);
-                             } 
-                         });
+                         ], function (err, results) {
+                             callback(err);
+                         }); 
                      }
-                     ], function (err, results) {
-                         callback(err);
-                     }); 
-                 }
-], function (err, results){
-    if (err) {
-        git.exec("reset", ["--hard"], function (err, msg){
-            if (err) {
-                console.log(err.message);
-            }
-            exec('cp -f ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
-                res.end("refresh");
+    ], function (err, results){
+        if (err) {
+            git.exec("reset", ["--hard"], function (err, msg){
+                if (err) {
+                    console.log(err.message);
+                }
+                exec('cp -f ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
+                    res.end("refresh");
+                });
             });
-        });
-        console.log("err" + err.message);
-        console.log("results: " + results);
-    } else {
-        var count = sync.length;
-        var files = [];
-        async.series([
-                function (callback) {
-                    exec('cp -f ' + appsfile + ' ' + cloud, function (error, stdout, stderr){
-                        callback(error);
+            console.log("err" + err.message);
+            console.log("results: " + results);
+        } else {
+            var count = sync.length;
+            var files = [];
+            async.series([
+                    function (callback) {
+                        exec('cp -f ' + appsfile + ' ' + cloud, function (error, stdout, stderr){
+                            callback(error);
+                        });
+                    },
+                    function (callback) {
+                        var oldpath = process.cwd();
+                        process.chdir(cloud);
+                        git.exec('add', ['./' + appsfile], function (err, msg) {
+                            console.log("add: " + msg);
+                            process.chdir(oldpath);
+                            callback(err);
+                        });
+                    }
+                    ], function (err, results) {
+                        if (err) {
+                            console.log(err.message);
+                            res.end("error");
+                        } else {
+                            res.end("refresh");
+                        }
+                    });
+                    if (count > 0) {
+                        sync.forEach(function (element, index, array){
+                            fs.readFile("apps/" + element, "utf8", function (err, data){
+                                count--;
+                                if (err) {
+                                    console.log(err.message);
+                                }   
+                                files = files.concat(data.trim().split('\n'));
+                                if (count === 0) {
+                                    filesWatch(files, function(err, time){
+                                        date = time;
+                                    }); 
+                                }   
+                            }); 
+                        }); 
+                    } else if (count === 0) {
+                        filesWatch(files, function(err, time){
+                            date = time;
+                        });
+                    }
+        }
+    });
+    });
+
+
+    setInterval(function (){
+        console.log("date: " + date);
+        if (date) {
+            async.series([
+                function (callback){
+                    git.exec("commit", ['-m "qomoCloud Sync @ ' + date + ' "'], function (err, msg) {
+                        console.log("commit: " + msg);
+                        callback(err);
                     });
                 },
                 function (callback) {
-                    var oldpath = process.cwd();
-                    process.chdir(cloud);
-                    git.exec('add', ['./' + appsfile], function (err, msg) {
-                        console.log("add: " + msg);
-                        process.chdir(oldpath);
+                    git.exec("push", ["-u origin master"], function (err, msg) {
+                        console.log("push: " + msg);
                         callback(err);
                     });
                 }
-                ], function (err, results) {
-                    if (err) {
-                        console.log(err.message);
-                        res.end("error");
-                    } else {
-                        res.end("refresh");
-                    }
+                ], function (callback) {
+                    date = null;
                 });
-                if (count > 0) {
-                    sync.forEach(function (element, index, array){
-                        fs.readFile("apps/" + element, "utf8", function (err, data){
-                            count--;
-                            if (err) {
-                                console.log(err.message);
-                            }   
-                            files = files.concat(data.trim().split('\n'));
-                            if (count === 0) {
-                                filesWatch(files, function(){
-                                    date = new Date();
-                                }); 
-                            }   
-                        }); 
-                    }); 
-                } else if (count === 0) {
-                    filesWatch(files, function(){
-                        date = new Date();
-                    });
-                }
-    }
-});
-});
+        }
+    }, 60*1000);
 
-app.listen(8000);
-
-setInterval(function (){
-    if (date) {
-        async.series([
-            function (callback){
-                git.exec("commit", ['-m "qomoCloud Sync @ "' + date], function (err, msg) {
-                    console.log("commit: " + msg);
-                    callback(err);
-                });
-            },
-            function (callback) {
-                git.exec("push", ["-u origin master"], function (err, msg) {
-                    console.log("push: " + msg);
-                    callback(err);
-                });
-            }
-            ], function (callback) {
-                date = null;
-            });
-    }
-}, 5*60*1000);
+    app.listen(8000);
+});
