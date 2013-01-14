@@ -24,15 +24,15 @@ function filter() {
 }
 
 var localStorage = null;
-var name = "";
-var password = "";
+var name = null;
+var password = null;
 
 if(window.localStorage){
     localStorage = window.localStorage;
     name = localStorage.getItem("name");
     password = localStorage.getItem("password");
 }
-if(localStorage != null &&  name != "" && password != "")  {
+if(localStorage != null &&  name != null && password != null)  {
     $("#front p").text("登录中...");
     $("#front").show();
     $.ajax({
