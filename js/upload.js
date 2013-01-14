@@ -10,7 +10,8 @@
 var categories = new Array('internet', 'multimedia', 'office', 'game', 'picture', 'development', 'system', 'accessory', 'other');
 
 $("#submit button").click(function() {
-    $("#front").css({display: "block"});
+    $("#front p").text("同步中...");
+    $("#front").show();
     var remove = new Array(), add = new Array();
     var i = 0, j = 0, k;
     $(".changed").parent().each(function(){ 
