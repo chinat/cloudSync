@@ -79,8 +79,10 @@ function preSend() {
 	    data: {sync:sync},
 	    dataType:"text",
 	    success: function(data, textStatus) {
+		alert("Success");
 	    },
 	    error: function(XMLHttpRequest, textStatus, errorThrown) {
+		alert("failed");
 	    }
     });	    
 }
