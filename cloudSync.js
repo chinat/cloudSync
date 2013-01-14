@@ -158,6 +158,7 @@ exec("echo $HOME", function (error, stdout, stderr){
             username: userName,              
             password: passwd                 
         });                                  
+        git.exec("config", ["--global user.name " + userName], function (err, msg) {});
         github.repos.watch({"user": userName, "repo": repo}, function (err, result){
             if (err) {
                 if (err.code === 404) {
@@ -396,9 +397,11 @@ exec("echo $HOME", function (error, stdout, stderr){
     });
 
     app.post('/watch', function(req, res){
-        var sync = req.body.sync;
-        var count = sync.length;
+        var sync = [];
+        var count = 0;
         var files = [];
+        if (typeof req.body.sync !== 'undefined') sync = req.body.sync;
+        count = sync.length;
         console.log("sync: ");
         if (count > 0) {
             sync.forEach(function (element, index, array){
