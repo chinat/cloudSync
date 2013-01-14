@@ -45,7 +45,6 @@ if(localStorage != null &&  name != "" && password != "")  {
 	            $("#login").hide();
 	            $("#body").show();
 	            load();
-	            //$.getScript('js/main.js');
 	        }
 	        else {
 	            localStorage.removeItem("name");
@@ -53,7 +52,7 @@ if(localStorage != null &&  name != "" && password != "")  {
 	        }
         },
         error: function(XMLHttpRequest, textStatus, errorThrown) {
-            alert("auto login failed");
+            localStorage.clear();
         }
     });
     $("#front").hide();
@@ -85,7 +84,6 @@ $(document).ready(function(){
 		        $("#login").hide();
 		        $("#body").show();
 		        load();
-		        //$.getScript('js/main.js');
 		    }
 		    else {
 		        $(".warning").text("用户名或密码无效...").css({color: "red"});
@@ -114,7 +112,6 @@ $("#btn-sort-desc").click(function() {
 $("#btn-unsynced").click(function(){
     if($(this).hasClass("active"))
         return false;
-    //$container. isotope({filter:'.unsync'+selector});
     sync = '.unsync';
     filter();
 });
@@ -122,7 +119,6 @@ $("#btn-unsynced").click(function(){
 $("#btn-synced").click(function(){
     if($(this).hasClass("active"))
        return false;
-    //$container.isotope({filter:'.sync'+selector});
     sync = '.sync';
     filter();
 });
@@ -130,7 +126,6 @@ $("#btn-synced").click(function(){
     /* navigate */
 $("#filters li").click(function() {
     selector = $(this).attr("data-filter");
-    //$container.isotope({filter: selector + sync});
     filter();
     return true; 
 });
