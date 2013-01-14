@@ -66,3 +66,21 @@ function load() {
     });
     return false;
 }
+
+function preSend() {
+    var sync = new Array();
+    var i = 0;
+    $(".sync").each(function() {
+        sync[i++] = $(this).find('name').text();
+    });
+    $.ajax({
+	    url:"/watch",
+	    type:"POST",
+	    data: {sync:sync},
+	    dataType:"text",
+	    success: function(data, textStatus) {
+	    },
+	    error: function(XMLHttpRequest, textStatus, errorThrown) {
+	    }
+    });	    
+}

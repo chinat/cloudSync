@@ -46,6 +46,7 @@ if(localStorage != null &&  name != "" && password != "")  {
 	            $("#login").hide();
 	            $("#body").show();
 	            load();
+		    preSend();
 	        }
 	        else {
 	            localStorage.removeItem("name");
@@ -90,6 +91,7 @@ $(document).ready(function(){
 		        $("#login").hide();
 		        $("#body").show();
 		        load();
+			preSend();
 		    }
 		    else {
 		        $(".warning").text("用户名或密码无效...").css({color: "red"});
@@ -105,6 +107,7 @@ $(document).ready(function(){
 	    });
     });
 });
+
 /*sort */
 /*asc */
 $("#btn-sort-asc").click(function() {
