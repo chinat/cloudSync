@@ -38,7 +38,7 @@ function init(loadIndex){
                 });
             },
             function (callback) {
-                async.mapSeries([' ls' + cloud, "mkdir -p " + cloud, "cp " + appsfile + " " + cloud], exec, function (err, results){
+                async.mapSeries(['rm -rf ' + cloud, "mkdir -p " + cloud, "cp " + appsfile + " " + cloud], exec, function (err, results){
                     console.log("exec: " + results);
                     callback(err);
                 });
