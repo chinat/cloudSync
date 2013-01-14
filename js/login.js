@@ -65,9 +65,12 @@ $(document).ready(function(){
     $("#login-submit").click(function(){
 	/* validate user input */
 	$("#login-submit").attr('disabled', true);
+        $("#front p").text("登录中...");
+        $("#front").show();
 	if($("#login-name").val() == "" || $("#login-password").val() == "") {
 	    $(".warning").text("用户名或密码不能为空...").css({color: 'red'});
 	    $("#login-submit").attr('disabled', false);
+            $("#front").hide();
 	    return false;
 	}
 	/* submit users input */
@@ -78,27 +81,29 @@ $(document).ready(function(){
 	        dataType: "text",
 	        success: function(data, textStatus) {
 		    if(data == "success") {
-                /* load the orign page */
-                if(localStorage != null) {
-                    localStorage.setItem("name", $("#login-name").val());
-                    localStorage.setItem("password", $("#login-password").val());
-                }
+                    /* load the orign page */
+                        if(localStorage != null) {
+                            localStorage.setItem("name", $("#login-name").val());
+                            localStorage.setItem("password", $("#login-password").val());
+                        }
+                        $("#front").hide();
 		        $("#login").hide();
 		        $("#body").show();
 		        load();
 		    }
 		    else {
 		        $(".warning").text("用户名或密码无效...").css({color: "red"});
+                        $("#front").hide();
 	                $("#login-submit").attr('disabled', false);
 		    }
 	        },
 	        error: function(XMLHttpRequest, textStatus, errorThrown) {
 		    $(".warning").text("网络异常...").css({color: "red"});
+                    $("#front").hide();
 	            $("#login-submit").attr('disabled', false);
 	        }
 	    });
     });
-    $("#login-submit").attr('disabled', false);
 });
 /*sort */
 /*asc */
