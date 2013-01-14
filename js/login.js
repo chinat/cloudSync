@@ -33,6 +33,7 @@ if(window.localStorage){
     password = localStorage.getItem("password");
 }
 if(localStorage != null &&  name != "" && password != "")  {
+    $("#front p").text("登录中...");
     $("#front").show();
     $.ajax({
         url:"/login",
@@ -45,31 +46,34 @@ if(localStorage != null &&  name != "" && password != "")  {
 	            $("#login").hide();
 	            $("#body").show();
 	            load();
-	            //$.getScript('js/main.js');
 	        }
 	        else {
 	            localStorage.removeItem("name");
 	            localStorage.removeItem("password");
 	        }
+                $("#front").hide();
         },
         error: function(XMLHttpRequest, textStatus, errorThrown) {
-            alert("auto login failed");
+            localStorage.clear();
+            $("#front").hide();
         }
     });
-    $("#front").hide();
 }
 
 $(document).ready(function(){
     /*list for the submit button */
     $("#login-submit").click(function(){
-	    /* validate user input */
-	    $("#login-submit").attr('disabled', true);
-	    if($("#login-name").val() == "" || $("#login-password").val() == "") {
-	        $(".warning").text("用户名或密码不能为空...").css({color: 'red'});
-	        $("#login-submit").attr('disabled', false);
-	        return false;
-	    }
-	    /* submit users input */
+	/* validate user input */
+	$("#login-submit").attr('disabled', true);
+        $("#front p").text("登录中...");
+        $("#front").show();
+	if($("#login-name").val() == "" || $("#login-password").val() == "") {
+	    $(".warning").text("用户名或密码不能为空...").css({color: 'red'});
+	    $("#login-submit").attr('disabled', false);
+            $("#front").hide();
+	    return false;
+	}
+	/* submit users input */
         $.ajax({
 	        url:"/login",
 	        type:"POST",
@@ -77,28 +81,29 @@ $(document).ready(function(){
 	        dataType: "text",
 	        success: function(data, textStatus) {
 		    if(data == "success") {
-                /* load the orign page */
-                if(localStorage != null) {
-                    localStorage.setItem("name", $("#login-name").val());
-                    localStorage.setItem("password", $("#login-password").val());
-                }
+                    /* load the orign page */
+                        if(localStorage != null) {
+                            localStorage.setItem("name", $("#login-name").val());
+                            localStorage.setItem("password", $("#login-password").val());
+                        }
+                        $("#front").hide();
 		        $("#login").hide();
 		        $("#body").show();
 		        load();
-		        //$.getScript('js/main.js');
 		    }
 		    else {
 		        $(".warning").text("用户名或密码无效...").css({color: "red"});
+                        $("#front").hide();
 	                $("#login-submit").attr('disabled', false);
 		    }
 	        },
 	        error: function(XMLHttpRequest, textStatus, errorThrown) {
 		    $(".warning").text("网络异常...").css({color: "red"});
+                    $("#front").hide();
 	            $("#login-submit").attr('disabled', false);
 	        }
 	    });
     });
-    $("#login-submit").attr('disabled', false);
 });
 /*sort */
 /*asc */
@@ -114,7 +119,6 @@ $("#btn-sort-desc").click(function() {
 $("#btn-unsynced").click(function(){
     if($(this).hasClass("active"))
         return false;
-    //$container. isotope({filter:'.unsync'+selector});
     sync = '.unsync';
     filter();
 });
@@ -122,7 +126,6 @@ $("#btn-unsynced").click(function(){
 $("#btn-synced").click(function(){
     if($(this).hasClass("active"))
        return false;
-    //$container.isotope({filter:'.sync'+selector});
     sync = '.sync';
     filter();
 });
@@ -130,7 +133,6 @@ $("#btn-synced").click(function(){
     /* navigate */
 $("#filters li").click(function() {
     selector = $(this).attr("data-filter");
-    //$container.isotope({filter: selector + sync});
     filter();
     return true; 
 });
