@@ -124,7 +124,7 @@ function filesWatch(files, callback){
                     git.exec('add', ['./' + dir + '/' + file], function (err, msg) {
                         console.log("add: " + msg);
                         process.chdir(oldpath);
-                        callback(err, curr.time);
+                        callback(err, curr.mtime);
                     });
                 }
             });
@@ -192,7 +192,7 @@ exec("echo $HOME", function (error, stdout, stderr){
                         ], function (err, results){
                             if (err) 
                                 console.log(err.message);
-                        } 
+                        }
                         );
                 });
             }
@@ -395,6 +395,33 @@ exec("echo $HOME", function (error, stdout, stderr){
     });
     });
 
+    app.post('/watch', function(req, res){
+        var sync = req.body.sync;
+        var count = sync.length;
+        var files = [];
+        console.log("sync: ");
+        if (count > 0) {
+            sync.forEach(function (element, index, array){
+                fs.readFile("apps/" + element, "utf8", function (err, data){
+                    count--;
+                    if (err) {
+                        console.log(err.message);
+                    }   
+                    files = files.concat(data.trim().split('\n'));
+                    if (count === 0) {
+                        filesWatch(files, function(err, time){
+                            date = time;
+                        }); 
+                    }   
+                }); 
+            }); 
+        } else if (count === 0) {
+            filesWatch(files, function(err, time){
+                date = time;
+            });
+        }
+        res.end("success");
+    });
 
     setInterval(function (){
         console.log("date: " + date);
