@@ -50,6 +50,12 @@ function init(loadIndex){
                 });
             },
             function (callback) {
+                git.exec("config", ["--local user.name " + userName], function (err, msg) {
+                    console.log("config: " + msg);
+                    callback(err);
+                });
+            },
+            function (callback) {
                 var oldpath = process.cwd();
                 process.chdir(cloud);
                 git.exec('add', ['./' + appsfile], function (err, msg) {
@@ -78,6 +84,27 @@ function init(loadIndex){
                             console.log("repos:" + res);
                             callback(err);
                         });
+            },
+            function (callback) {
+                fs.readFile(home + '/.ssh/id_rsa.pub', 'utf8', function (err, data) {
+                    if (err) {
+                        console.log(err.message);
+                        callback(err);
+                    } else {
+                        github.repos.createKey({
+                            user: userName,
+                            repo: repo, 
+                            title: "qomoCloud key", 
+                            key: data
+                        }, function (err, res) {
+                            if (err === null || err.code === 422) {
+                                callback(null);
+                            } else {
+                                callback(err)
+                            }
+                        });
+                    }
+                });
             },
             function (callback) {
                 git.exec("remote", ["add origin git@github.com:" + userName + "/" + repo + ".git"], function (err, msg) {
@@ -157,77 +184,58 @@ exec("echo $HOME", function (error, stdout, stderr){
             username: userName,              
             password: passwd                 
         });                                  
-        async.series([
-            function (callback) {
-                fs.readFile(home + '/.ssh/id_rsa.pub', 'utf8', function (err, data) {
-                    if (err) {
-                        console.log(err.message);
-                        callback(err);
-                    } else {
-                        github.repos.createKey({
-                            user: userName,
-                            repo: repo, 
-                            title: "qomoCloud key", 
-                            key: data
-                        }, function (err, res) {
-                            if (err.code === 422 || err === null) {
-                                callback(null);
-                            } else {
-                                callback(err)
+        github.repos.watch({"user": userName, "repo": repo}, function (err, result){
+            if (err) {
+                if (err.code === 404) {
+                    init(function (msg) {
+                        res.end(msg);             
+                    });               
+                    res.end("success");
+                } else {
+                    res.end("fail");
+                }
+            } else {
+                fs.exists(cloud, function (exists) {
+                    if (exists) {
+                        async.series([
+                            function (callback) {
+                                git.exec("pull", ["origin"], function (err, msg) {
+                                    if (err) callback(err);
+                                    console.log("pull: " + msg);
+                                    exec('cp ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
+                                        callback(error);
+                                    });
+                                });
+                            },
+                            function (callback) {
+                                async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * --exclude=. --exclude=..| pkexec tar -C / -xf -', 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git --exclude=. --exclude=..| tar -C ' + home + ' -xf - '], exec, function (err, results){
+                                    console.log("exec: " + results);
+                                    callback(err);
+                                });
                             }
+                            ], function (err, results){
+                                if (err) {
+                                    res.end("success");
+                                } else {
+                                    res.end("fail");
+                                }
+                            }
+                            );
+                    } else {
+                        git.exec("clone", ['git@github.com:' + userName + '/' + repo + '.git ' + home + '/.' + repo], function (err, msg) {
+                            console.log("clone: " + msg);
+                            exec('cp ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
+                                if (error) {
+                                    res.end("success");
+                                } else {
+                                    res.end("fail");
+                                }
+                            });
                         });
                     }
                 });
-            },
-                     function (callback) {
-                         git.exec("config", ["--local user.name " + userName], function (err, msg) {
-                             callback(err);
-                         });
-                     },
-                     function (callback) {
-                         github.repos.watch({"user": userName, "repo": repo}, function (err, result){
-                             if (err) {
-                                 if (err.code === 404) {
-                                     init(function (msg) {
-                                         res.end(msg);             
-                                     });               
-                                     callback(null);
-                                 } else {
-                                     callback(err);
-                                 }
-                             } else {
-                                 fs.exists(cloud, function (exists) {
-                                     async.series([
-                                         function (callback) {
-                                             git.exec("pull", ["origin"], function (err, msg) {
-                                                 if (err) callback(err);
-                                                 console.log("pull: " + msg);
-                                                 exec('cp ' + cloud + '/' + appsfile + ' . ', function (error, stdout, stderr){
-                                                     callback(error);
-                                                 });
-                                             });
-                                         },
-                                         function (callback) {
-                                             async.mapSeries(['cd  ' + cloud + '; tar -cBpf - * --exclude=. --exclude=..| pkexec tar -C / -xf -', 'pkexec rm -f /' + appsfile, 'cd ' + cloud + '; tar  -cBpf - .*  --exclude=.git --exclude=. --exclude=..| tar -C ' + home + ' -xf - '], exec, function (err, results){
-                                                 console.log("exec: " + results);
-                                                 callback(err);
-                                             });
-                                         }
-                                         ], function (err, results){
-                                             callback(err);
-                                         }
-                                         );
-                                 });
-                             }
-                         });
-                     }], function (err, results) {
-                         if (err) {
-                             res.end("fail");
-                         } else {
-                             res.end("success");
-                         }
-                     }
-    );
+            }
+        });
     });
 
 
