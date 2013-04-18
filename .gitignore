@@ -1,4 +1,1 @@
-node_modules
-apps.xml
-test.js
-cloudSync.lock
+*.user
