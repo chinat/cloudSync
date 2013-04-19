@@ -138,10 +138,22 @@ public:
          */
         handle["create"] = [](QString param) {
             QString route = "/authorizations";
-            Http::Action action = Http::POST;
-            Http *http = new Http(QUrl(QS), this);
+            Http *http = new Http(QUrl(QString("%1%2").arg(prefix).arg(route)), this);
             connect(http, &Http::finished, [=](QMap<QString, QVariant> ret){
-                
+                QMapIterator iterator(ret);
+                while(iterator.hasNext()) {
+                    iterator.next();
+                    QVariant value = iterator.value();
+                    switch (value.type()) {
+                    case QVariant::String:
+                    case QVariant::StringList:
+                    case QVariant::BitArray:
+                    case QVariant::Int:
+                    case QVariant::LongLong:
+                        qDebug()<<iterator.key()<<" : "<<value;
+                        break;
+                    }
+                }
             });
             
             http->setHeader("Authorization", "base");

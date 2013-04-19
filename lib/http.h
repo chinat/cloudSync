@@ -1,12 +1,16 @@
 #ifndef HTTP_H
 #define HTTP_H
 
+#include <ios>
+
 #include <QUrl>
 #include <QString>
 #include <QVariant>
 #include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QNetworkAccessManager>
 
+using Map = QMap<QByteArray, QByteArray>;
 
 class Http : public QObject {
     Q_OBJECT
@@ -18,10 +22,9 @@ public :
         PATCH
     };
     
-    Http(QUrl url, QObject *parent = NULL):QObject(parent) {
+    Http(QObject *parent = NULL):QObject(parent) {
         manager = new QNetworkAccessManager(parent);
-        request = new QNetworkRequest(url);
-        
+
         // trans signals
         connect(manager, &QNetworkAccessManager::finished, [](QNetworkReply *reply){
             QNetworkReply *reply;
@@ -40,29 +43,43 @@ public :
         
     }
     
+    ~Http(){
+        delete manager;
+    }
+    
     void setHeader(QByteArray &name, QByteArray &value) {
         request->setRawHeader(name, value);
     }
     
-    QNetworkReply * gGet() {
-        manager->get((*request));
+    QNetworkReply * gGet(QUrl url, QMap<QByteArray, QByteArray> header) {
+        QNetworkRequest request(url);
+        if(!header.isEmpty()) {
+            QMapIterator iterator(header);
+            while(iterator.hasNext()) {
+                iterator.next();
+                request.setRawHeader(iterator.key(), iterator.value());
+            }
+        }
+        manager->get(request);
     }
     
-    QNetworkReply * gPost(QByteArray &data) {
-        manager->post((*request), data);
+    QNetworkReply * gPost(QUrl url, QByteArray &data) {
+        QNetworkRequest request(url);
+        manager->post(request, data);
     }
     
-    QNetworkReply * gPatch(QByteArray &data) {
-        manager->post((*request), data);
+    QNetworkReply * gPatch(QUrl url, QByteArray &data) {
+        QNetworkRequest request(url);
+        manager->post(request, data);
     }
     
-    QNetworkReply * gDelete() {
-        manager->deleteResource((*request));
+    QNetworkReply * gDelete(QUrl url) {
+        QNetworkRequest request(url);
+        manager->deleteResource(request);
     }
     
 protected :
     QNetworkAccessManager * manager;
-    QNetworkRequest *request;
 Q_SIGNALS:
     void finished(QMap<QString, QVariant> ret);
 };
