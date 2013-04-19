@@ -9,6 +9,11 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
+
 #include "http.h"
 
 namespace GitHub {
@@ -27,16 +32,18 @@ public :
     };
     
     User(QObject * parent = NULL): QObject(parent) {
-        handle["get"] = [](QString param) {
+        http = new Http::Http(this);
+        
+        handle["get"] = [&](QString param) {
             
             return 0;
         };
         
-        handle["update"] = [](QString param) {
+        handle["update"] = [&](QString param) {
             return 0;
         }; 
         
-        handle["getOrgs"] = [](QString param) {
+        handle["getOrgs"] = [&](QString param) {
             
             return 0;
         };
@@ -60,7 +67,19 @@ public :
             return 0;
         };
         
+        /**
+          *  list current use's key 
+          *  GET /user/keys
+          *  method basic or OAuth with user scope
+          *  param 
+          *        token 
+          *      or
+          *        username
+          *        passwd
+          */
         handle["getKeys"] = [](QString param) {
+            QString route = "/usr/keys";
+            
             
             return 0;
         };
@@ -70,46 +89,89 @@ public :
             return 0;
         };
         
-        handle["createKey"] = [](QString param) {
+        /**
+          *  add ssh public key to github
+          *  POST /usr/keys
+          *  method basic
+          *  param
+          *        title
+          *        key
+          *        username
+          *        passwd
+          * 
+          *  steps:
+          *    checkout if this ssh has added to github 
+          *        on linux, /home/user/.ssh/id_rsa.pub
+          */
+        handle["createKey"] = [&](Map &param) {
+            QString route = "/user/keys";
+            Map param;
+            //param check
+            if(!param.contains("username") || !param.contains("passwd") || !param.contains("key")) {
+                Map ret;
+                ret["_state"] = 1;
+                ret["_message"] = "username or password is need";
+                return 1;
+            }
+            if(!param.contains("title")) {
+                param["title"] = "GitHub lib base on qt";
+            }
+            
+            QJsonValue title(param["title"]);
+            QJsonValue key(param["key"]);
+            QJsonObject obj;
+            obj.insert("title", title);
+            obj.insert("key", key);
+            QJsonDocument data(obj);
+            
+            QNetworkRequest request(QUrl(QString("%1%2").arg(prefix).arg(route)));
+            request.setRawHeader("Authorization", "Basic " + QByteArray(QString("%1:%2").arg(param["username"]).arg(param["passwd"]).toLatin1().toBase64()));  
+            QNetworkReply *reply = http->POST(request, data.toJson());
+            connect(reply, &QNetworkReply::finished, [&](){
+                
+            });
+            
+            
             return 0;
         };
         
-        handle["updateKey"] = [](QString param) {
+        
+        handle["updateKey"] = [&](QString param) {
             return 0;
         };
         
-        handle["deleteKey"] = [](QString param) {
+        handle["deleteKey"] = [&](QString param) {
             
             return 0;
         };
     }
     
-    
-    QMap <QString, std::function<int(QString)>>  handle ;
-    
-public Q_SLOTS:
-    void setToken(QString token);
-    void httpSend(QString msg);
-private :
-    QString name;
-    QString passwd;
-    QString token;
+protected:
+    QMap<QString, std::function<int(Map&)> handle;
+    Http::Http *http;
+
+
 };
 
 
 class Authorization : public QObject {
     Q_OBJECT
-    
 public:
     Authorization(QObject * parent = NULL):QObject(parent) {
+        http = new Http::Http(this);
+        
         /** 
          *  GET /authorizations/:id
          *  scopes: 
          *  method: basic 
+         *  param
+         *        username
+         *        passwd
+         *        id
          */
-        handle["get"] = [](QString param) {
+        handle["get"] = [&](Map param) {
             QString route = "/authorizations/:id";
-            Http::Action action = Http::GET;
+            
             
             return 0;
         };
@@ -118,10 +180,13 @@ public:
          *  GET /authorizations
          *  scopes: "user", "public_repo", "repo", "repo:status", "delete_repo", "gist"
          *  method: basic
+         *  param
+         *        username
+         *        passwd
          */
-        handle["getAll"] = [](QString param) {
+        handle["getAll"] = [&](Map param) {
             QString route = "/authorizations";
-            Http::Action action = Http::GET;
+            
             return 0;
         };
         
@@ -129,57 +194,90 @@ public:
          *  POST /authorizations
          *  scopes: 
          *  method: basic
-         *  Input: 
-         *        scopes:[](opt)
-         *        note: str(opt)
-         *        note_url: str(opt)
-         *        client_id: str(opt)
-         *        client_secret: str(opt)
+         *  param
+         *        username
+         *        passwd
+         *        contentTypeHeader
          */
-        handle["create"] = [](QString param) {
+        handle["create"] = [&](Map &param) {
             QString route = "/authorizations";
-            Http *http = new Http(QUrl(QString("%1%2").arg(prefix).arg(route)), this);
-            connect(http, &Http::finished, [=](QMap<QString, QVariant> ret){
-                QMapIterator iterator(ret);
-                while(iterator.hasNext()) {
-                    iterator.next();
-                    QVariant value = iterator.value();
-                    switch (value.type()) {
-                    case QVariant::String:
-                    case QVariant::StringList:
-                    case QVariant::BitArray:
-                    case QVariant::Int:
-                    case QVariant::LongLong:
-                        qDebug()<<iterator.key()<<" : "<<value;
-                        break;
+            //param check
+            if(!param.contains("username") || !param.contains("passwd")) {
+                Map ret;
+                ret["_state"] = 1;
+                ret["_message"] = "username or password is need";
+                return 1;
+            }
+            
+            QJsonArray scopes = QJsonArray::fromStringList(scopes);
+            QJsonValue note("From GitHub Qt lib v0.1");
+            QJsonValue note_utl("http://127.0.0.1");
+            QJsonObject obj;
+            obj.insert("scopes", scopes);
+            obj.insert("note", note);
+            obj.insert("note_url", note_utl);
+            QJsonDocument data(obj);
+            
+            QNetworkRequest request(QUrl(QString("%1%2").arg(prefix).arg(route)));
+            
+            //set http content type
+            if(param.contains("contentTypeHeader")) 
+                request.setHeader(QNetworkRequest::ContentTypeHeader, param["contentTypeHeader"]);
+            else 
+                request.setHeader(QNetworkRequest::ContentTypeHeader, param.contains("application/json"));
+            
+            request.setRawHeader("Authorization", "Basic " + QByteArray(QString("%1:%2").arg(param["username"]).arg(param["passwd"]).toLatin1().toBase64()));    
+            QNetworkReply *reply = http->POST(request, data.toJson());
+            
+            connect(reply, &QNetworkReply::finished, [&]() {
+                // string to json
+                QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+                QJsonObject data = doc.object();
+                Map ret;
+                for(QByteArray key : param.keys()) {
+                    if(data.contains(QString(key))) {
+                        ret[key] = data[key];
+                    }
+                    else if(reply->rawHeaderList().contains(key)) {
+                        ret[key] = reply->rawHeader(key);
                     }
                 }
+                if(ret.contains("_state")) 
+                    ret["_state_"] = 0;
+                else
+                    ret["_state"] = 0;
+                
+                emit result(ret);
+                reply->deleteLater();
             });
-            
-            http->setHeader("Authorization", "base");
-            
             return 0;
         };
         
         /**
           *  PATCH /authorizations/:id
           *  scopes:
-         *  method: basic
+          *  method: basic
+          *  param
+          *        username
+          *        passwd
+          *        id
           */
-        handle["update"] = [](QString param) {
+        handle["update"] = [&](Map param) {
             QString route = "/authorizations/:id";
-            Http::Action action = Http::PATCH;
+            
+            
             return 0;
         };
         
         /**
           *  DELETE /authorizations/:id
           *  scopes:
+          *  param
+          *        username
+          *        passwd
           */
-        handle["delete"] = [](QString param) {
+        handle["delete"] = [&](QString param) {
             QString route = "/authorizations/:id";
-            Http::Action action = Http::DELETE;
-            
             
             return 0;
         };
@@ -187,18 +285,26 @@ public:
         /**
           * GET /applications/:client_id/tokens/:access_token
           */
-        handle["check"] = [](QString param) {
+        handle["check"] = [&](Map param) {
             QString route = "/applications/:client_id/tokens/:access_token";
-            Http::Action action = Http::GET;
+            
             
             return 0;
         };
     }
     
+    
+protected:
     QStringList scopes{"user", "user:email", "user:follow", "public_repo", "repo", 
                        "repo:status", "delete_repo", "notifications", "gist"};
     
-    QMap<QString, std::function<int(QString)> handle;
+    QMap<QString, std::function<int(Map&)> handle;
+    Http::Http *http;
+    
+Q_SIGNALS:
+    // delete later
+    void finished(Map map);
+    
 };
 
 }
