@@ -128,7 +128,25 @@ public :
             request.setRawHeader("Authorization", "Basic " + QByteArray(QString("%1:%2").arg(param["username"]).arg(param["passwd"]).toLatin1().toBase64()));  
             QNetworkReply *reply = http->POST(request, data.toJson());
             connect(reply, &QNetworkReply::finished, [&](){
+                // string to json
+                QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+                QJsonObject data = doc.object();
+                Map ret;
+                for(QByteArray key : param.keys()) {
+                    if(data.contains(QString(key))) {
+                        ret[key] = data[key];
+                    }
+                    else if(reply->rawHeaderList().contains(key)) {
+                        ret[key] = reply->rawHeader(key);
+                    }
+                }
+                if(ret.contains("_state")) 
+                    ret["_state_"] = 0;
+                else
+                    ret["_state"] = 0;
                 
+                emit result(ret);
+                reply->deleteLater();
             });
             
             
