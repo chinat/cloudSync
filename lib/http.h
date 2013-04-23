@@ -16,10 +16,10 @@ class Http : public QObject {
     Q_OBJECT
 public :
     enum Action {
-        GET = 1,
-        POST,
-        DELETE,
-        PATCH
+        A_GET = 1,
+        A_POST,
+        A_DELETE,
+        A_PATCH
     };
     
     Http(QObject *parent = NULL):QObject(parent) {

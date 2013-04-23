@@ -7,6 +7,11 @@
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
     
+    using namespace GitHub;
+    
+    Authorization auth;
+    auth.create();
+    
     
     
     
